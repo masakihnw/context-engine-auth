@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>context-engine private — 認可</title>
+<style>
+  :root{color-scheme:light dark}
+  body{font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans",sans-serif;max-width:28rem;margin:12vh auto;padding:0 1.25rem;line-height:1.6}
+  h1{font-size:1.25rem;margin:0 0 .25rem}
+  p.sub{color:#6b7280;margin:.25rem 0 1.5rem;font-size:.9rem}
+  label{display:block;font-weight:600;margin:0 0 .35rem}
+  input[type=password]{width:100%;padding:.7rem .8rem;font-size:1rem;border:1px solid #cbd5e1;border-radius:.6rem;box-sizing:border-box}
+  button{margin-top:1rem;width:100%;padding:.75rem;font-size:1rem;font-weight:600;border:0;border-radius:.6rem;background:#4f46e5;color:#fff;cursor:pointer}
+  .err{color:#dc2626;font-size:.9rem}
+  .note{margin-top:1.5rem;color:#6b7280;font-size:.8rem}
+</style>
+</head>
+<body>
+<h1>private コンテキストへのアクセスを許可</h1>
+<p class="sub">iPhone / Mac の Claude をあなたの private コンテキストエンジンに接続します。本人確認のため認可シークレットを入力してください。</p>
+<p id="err" class="err" style="display:none"></p>
+
+<form id="authorize-form" method="POST">
+  <input type="hidden" name="client_id">
+  <input type="hidden" name="redirect_uri">
+  <input type="hidden" name="state">
+  <input type="hidden" name="code_challenge">
+  <input type="hidden" name="code_challenge_method">
+  <input type="hidden" name="scope">
+  <input type="hidden" name="resource">
+  <label for="owner_secret">認可シークレット</label>
+  <input id="owner_secret" name="owner_secret" type="password" autocomplete="current-password" autofocus required>
+  <button type="submit">許可する</button>
+</form>
+<p class="note">このページは認可フォームの表示専用です（Supabase Edge Function の既定ドメインは
+GET レスポンスの text/html を text/plain へ書き換えるため、この静的ページに委譲しています。
+入力内容はサーバ（<code>*.supabase.co</code>）へ直接 POST され、このページ自体は本人確認シークレットを
+保持・記録しません）。private 専用サーバです。work（勤務先）情報は構造的に含まれません。</p>
+
+<script>
+  // AUTHORIZE_ENDPOINT は自分の context-engine プロジェクトの mcp-server 関数の
+  // /authorize（POST）を指す。プロジェクト固有の値なのでこの1行だけ書き換えて使う。
+  const AUTHORIZE_ENDPOINT = 'https://ecbqfnopkqnaotbnujrn.supabase.co/functions/v1/mcp-server/authorize';
+
+  const params = new URLSearchParams(window.location.search);
+  const form = document.getElementById('authorize-form');
+  form.action = AUTHORIZE_ENDPOINT;
+
+  const fields = ['client_id', 'redirect_uri', 'state', 'code_challenge', 'code_challenge_method', 'scope', 'resource'];
+  for (const name of fields) {
+    const el = form.elements.namedItem(name);
+    if (el) el.value = params.get(name) || '';
+  }
+
+  const errMsg = params.get('error_message');
+  if (errMsg) {
+    const errEl = document.getElementById('err');
+    errEl.textContent = errMsg;
+    errEl.style.display = 'block';
+  }
+
+  // 必須パラメータが揃っていなければ送信させない（fail-closed の見た目上の担保。
+  // 実際の検証はサーバ側 validateAuthorizeParams / handleAuthorizePost が行う）。
+  if (!params.get('client_id') || !params.get('redirect_uri') || !params.get('code_challenge')) {
+    form.querySelector('button').disabled = true;
+    document.getElementById('err').textContent = '必要なパラメータが不足しています。認可フローを最初からやり直してください。';
+    document.getElementById('err').style.display = 'block';
+  }
+</script>
+</body>
+</html>
