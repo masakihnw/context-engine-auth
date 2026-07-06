@@ -23,6 +23,7 @@
 <p id="err" class="err" style="display:none"></p>
 
 <form id="authorize-form" method="POST">
+  <input type="hidden" name="response_type">
   <input type="hidden" name="client_id">
   <input type="hidden" name="redirect_uri">
   <input type="hidden" name="state">
@@ -48,7 +49,7 @@ GET レスポンスの text/html を text/plain へ書き換えるため、こ�
   const form = document.getElementById('authorize-form');
   form.action = AUTHORIZE_ENDPOINT;
 
-  const fields = ['client_id', 'redirect_uri', 'state', 'code_challenge', 'code_challenge_method', 'scope', 'resource'];
+  const fields = ['response_type', 'client_id', 'redirect_uri', 'state', 'code_challenge', 'code_challenge_method', 'scope', 'resource'];
   for (const name of fields) {
     const el = form.elements.namedItem(name);
     if (el) el.value = params.get(name) || '';
